@@ -180,4 +180,3 @@ class CentralBank:
                 player.change_cash(-unmortgage_cost)
                 player.mortgaged_properties.remove(space_id)
                 if self.debug_mode: print(f"    📈 {player.name} unmortgaged {Board.format_colored_name(space_id)}.")
-

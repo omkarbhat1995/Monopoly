@@ -1,50 +1,35 @@
-# Monopoly Simulation Engine 🎩🎲
+# Monopoly AI Simulation Engine 🎩🎲
 
-A professional-grade, strictly objective, mathematical simulation engine for Monopoly. This project runs lightning-fast batch simulations of Monopoly matches to gather telemetry on landing probabilities, and it provides a real-time, terminal-based visual dashboard for single games.
+This project is a complete, Object-Oriented Programming (OOP) version of a Monopoly simulation. It is structured as a professional, maintainable software package that functions as a true Multi-Agent AI Simulator. It models advanced tournament rules, competitive economic pressure, and spatial probabilities to generate highly accurate gameplay analytics.
 
-It natively enforces **advanced tournament rules** that are often overlooked in casual play, modeling the exact economic chokeholds that win real-world championships.
+## ✨ Features
 
-## Features & Tournament Rules Implemented
+* **Multi-Agent AI Strategies:** Utilizes a Strategy Design Pattern to define different behavioral profiles, allowing you to pit Aggressive, Conservative, and Balanced AI profiles against each other.
+* **Advanced Economic Engine:** Features property costs, multi-tiered rent structures based on houses and hotels, and exclusive ownership mechanisms. 
+* **Dynamic Bankruptcies & Liquidation:** Simulates financial health where bankruptcies to a player transfer all physical assets instantly to the creditor, while bankruptcies to the Bank release properties back to the market.
+* **Tournament-Accurate Mechanics:** Enforces the "Three Doubles" speeding penalty, precise board wrapping (spaces 1-40), and proper Jail interception vectors.
+* **Card Decks:** Models standard 16-card stacks for Chance and Community Chest, processing teleportation paths, chain reactions, and financial penalties.
+* **Statistical Heatmaps:** Runs massive nested loops to register spatial collisions to a frequency counter, generating probability heatmaps of standard game durations.
 
-* **Vickrey Property Auctions:** When a player lands on unowned land but cannot afford it (or refuses to buy to save cash), it instantly triggers a background AI auction where players calculate their max valuations and snipe the property.
-* **Global Housing Supply Shortages:** Accurately restricts the game economy to the physical 32 Houses and 12 Hotels included in a real box. Players can (and will) hoard low-level housing to strategically choke their opponents from building.
-* **Even Building Rules:** Structurally restricts real estate development; houses must be built symmetrically across color blocks.
-* **Financial Distress & Asset Liquidation:** If a player goes broke, they aren't instantly dead. They systematically sell off houses at 50% value and mortgage their empty land to pay the landlord. 
-* **Bankruptcy Seizures:** Bankruptcies to a player transfer all physical assets (and debt!) instantly to the creditor, creating massive late-game mega-landlords. Bankruptcies to the Bank release the properties back to the wild.
-* **True Rent Physics:** Rent scales dynamically based on unimproved monopolies (2x), house/hotel tiers, railroad counts, and active dice multiplier dependencies for Utilities.
-* **Live ASCII Output:** Watch games play out natively in the terminal with a real-time tracking map, property portfolio summaries, and color-coded event feeds.
+## 🗂️ File Architecture
 
----
+The project enforces true separation of concerns, allowing you to update the UI or the economy independently without breaking the core game loop.
 
-## File Structure & Architecture
+* `main.py` — Instantiates the execution loop with specified macro-parameters (such as AI strategies and total games) and acts as the simple terminal entry point.
+* `simulation.py` — The programmatic core orchestrating independent matches, nested step execution loops, and tracking statistical aggregates.
+* `bank.py` — The isolated economic engine, managing Vickrey auctions, liquidations, global housing supply shortages, and property deeds.
+* `renderer.py` — Takes over all terminal outputs, live visual mapping, and statistical formatting.
+* `player.py` — Encapsulates the financial health, location profile, and strategy bindings of an active entity.
+* `strategy.py` — Defines the behavioral risk profiles and auction bidding limits for the players.
+* `board.py` — Houses static immutable system constraints defining structural dimensions, ANSI color codes, and multi-tiered pricing matrices.
+* `deck.py` — Models standard 16-card stacks and automatically recycles exhausted cards to the bottom of the deck (including Get Out of Jail Free tracking).
+* `dice.py` — Manages pseudo-random number generation and maintains internal localized state variables to track consecutive double sequences.
 
-The architecture is aggressively decoupled using Object-Oriented Programming (OOP) paradigms to ensure logic remains localized and highly readable.
+## 🚀 How to Install & Run
 
-* `main.py`: The application entry point. Used to toggle between live Visual Debug Mode and mass Background Batch Mode.
-* `board.py`: Houses the core Spatial Data. Maps out the 40 tiles, assigns ANSI color codes, and stores the multi-tiered rent and pricing arrays.
-* `deck.py`: Manages the physical layout and shuffling of Chance and Community Chest cards. Simulates the single exact inventory of the real game (including extracting "Get Out of Jail Free" cards from circulation).
-* `dice.py`: Simulates dual 6-sided dice logic, including 3-consecutive double arrests.
-* `player.py`: Tracks an agent's individual state (cash, physical location, property inventories, jail states, and held asset cards).
-* `simulation.py`: The heart of the program. Divided into three subsystems:
-    1.  **`GameRenderer`**: Handles all visual console feedback and heatmap metrics.
-    2.  **`CentralBank`**: Enforces strict economic boundaries, processes auctions, and processes liquidations.
-    3.  **`MonopolySimulation`**: Orchestrates the round loops and coordinates game state handoffs.
+1. Clone or download all script files into a clean directory on your workspace.
+2. Ensure all files reside within the exact same folder structure level.
+3. Open up a terminal CLI shell, navigate directly to that working path directory, and execute the initialization script utilizing your Python 3.x interpreter:
 
----
-
-## How to Run
-
-1. Ensure you have Python 3.9+ installed. (No external pip libraries are required!)
-2. Open your terminal in the project directory.
-3. Run the script:
-   ```bash
-   python main.py
-
-
-## Toggle Run Modes
-Inside main.py, you can alter the simulation behavior via the constructor:
-
-To watch a live single game unfold: Set debug_mode=True.
-
-To run a 1,000-game statistical batch processor:
-Set debug_mode=False. It will disable printing, run the loop natively, and dump the aggregated financial averages and Board Heatmaps at the end.
+```bash
+python main.py

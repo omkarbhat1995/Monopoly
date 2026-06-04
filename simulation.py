@@ -1,12 +1,11 @@
 from collections import Counter
-from typing import List
+from typing import List, Optional
 from dice import Dice
 from board import Board
 from deck import Deck
 from player import Player
 from renderer import GameRenderer
 from bank import CentralBank
-from typing import Optional
 
 class MonopolySimulation:
     """Manages the game loop, dice, decks, and coordinates between Bank and UI."""
