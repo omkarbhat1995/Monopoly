@@ -86,47 +86,46 @@ Bash
 python main.py
 
 Because the engine processes exactly 100 turns across 1,000 independent trials, it registers precisely $101,000$ unique coordinate states (1,000 initial spawn records at space 1, plus 100,000 standard physical steps).Upon completion, a summary statistical tracking breakdown is formatted cleanly within standard text outputs:
-
 --- SIMULATION COMPLETE (1,000 GAMES x 100 STEPS) ---
-Space              | Total Visits    | Landed %  
---------------------------------------------------
-Space 10 (Jail)    | 5,470           | 5.42%
-Space 01 (GO)      | 3,209           | 3.18%
-Space 17           | 2,866           | 2.84%
-Space 18           | 2,808           | 2.78%
-Space 19           | 2,798           | 2.77%
-Space 28           | 2,787           | 2.76%
-Space 20           | 2,743           | 2.72%
-Space 24           | 2,735           | 2.71%
-Space 26           | 2,718           | 2.69%
-Space 16           | 2,693           | 2.67%
-Space 22           | 2,688           | 2.66%
-Space 25           | 2,687           | 2.66%
-Space 27           | 2,655           | 2.63%
-Space 15           | 2,652           | 2.63%
-Space 21           | 2,632           | 2.61%
-Space 32           | 2,632           | 2.61%
-Space 29           | 2,631           | 2.60%
-Space 23           | 2,615           | 2.59%
-Space 31           | 2,576           | 2.55%
-Space 13           | 2,527           | 2.50%
-Space 14           | 2,508           | 2.48%
-Space 12           | 2,506           | 2.48%
-Space 33           | 2,440           | 2.42%
-Space 09           | 2,394           | 2.37%
-Space 06           | 2,389           | 2.37%
-Space 34           | 2,376           | 2.35%
-Space 04           | 2,347           | 2.32%
-Space 08           | 2,345           | 2.32%
-Space 07           | 2,337           | 2.31%
-Space 36           | 2,283           | 2.26%
-Space 35           | 2,281           | 2.26%
-Space 02           | 2,252           | 2.23%
-Space 03           | 2,247           | 2.22%
-Space 11           | 2,234           | 2.21%
-Space 05           | 2,224           | 2.20%
-Space 40           | 2,219           | 2.20%
-Space 39           | 2,181           | 2.16%
-Space 38           | 2,175           | 2.15%
-Space 37           | 2,140           | 2.12%
-Space 30 (Go To Jail) | 0               | 0.00%
+ID  | Space Name                          | Group        | Total Visits | Landed %  
+-------------------------------------------------------------------------------------
+10  | Just Visiting / Jail       | SPECIAL      | 6,311        | 5.43%
+17  | Community Chest            | SPECIAL      | 5,673        | 4.88%
+33  | Community Chest            | SPECIAL      | 5,226        | 4.49%
+01  | GO                         | SPECIAL      | 4,077        | 3.51%
+22  | Chance                     | SPECIAL      | 4,058        | 3.49%
+02  | Community Chest            | SPECIAL      | 3,859        | 3.32%
+07  | Chance                     | SPECIAL      | 3,561        | 3.06%
+36  | Chance                     | SPECIAL      | 3,525        | 3.03%
+24  | Illinois Avenue            | RED          | 3,178        | 2.73%
+19  | New York Avenue                | ORANGE       | 3,130        | 2.69%
+25  | B. & O. Railroad               | RAILROAD     | 3,083        | 2.65%
+16  | St. James Place                | ORANGE       | 2,894        | 2.49%
+28  | Water Works                    | UTILITY      | 2,879        | 2.48%
+15  | Pennsylvania Railroad          | RAILROAD     | 2,864        | 2.46%
+21  | Kentucky Avenue            | RED          | 2,852        | 2.45%
+18  | Tennessee Avenue               | ORANGE       | 2,851        | 2.45%
+20  | Free Parking               | SPECIAL      | 2,783        | 2.39%
+26  | Atlantic Avenue            | YELLOW       | 2,717        | 2.34%
+31  | Pacific Avenue             | GREEN        | 2,710        | 2.33%
+11  | St. Charles Place          | PINK         | 2,703        | 2.32%
+23  | Indiana Avenue             | RED          | 2,691        | 2.31%
+12  | Electric Company               | UTILITY      | 2,624        | 2.26%
+32  | North Carolina Avenue      | GREEN        | 2,597        | 2.23%
+29  | Marvin Gardens             | YELLOW       | 2,582        | 2.22%
+27  | Ventnor Avenue             | YELLOW       | 2,580        | 2.22%
+05  | Reading Railroad               | RAILROAD     | 2,539        | 2.18%
+34  | Pennsylvania Avenue        | GREEN        | 2,469        | 2.12%
+13  | States Avenue              | PINK         | 2,410        | 2.07%
+14  | Virginia Avenue            | PINK         | 2,405        | 2.07%
+08  | Vermont Avenue             | LIGHT_BLUE   | 2,398        | 2.06%
+35  | Short Line Railroad            | RAILROAD     | 2,331        | 2.00%
+09  | Connecticut Avenue         | LIGHT_BLUE   | 2,323        | 2.00%
+04  | Income Tax                 | SPECIAL      | 2,293        | 1.97%
+06  | Oriental Avenue            | LIGHT_BLUE   | 2,245        | 1.93%
+38  | Luxury Tax                 | SPECIAL      | 2,217        | 1.91%
+37  | Park Place                 | DARK_BLUE    | 2,184        | 1.88%
+39  | Boardwalk                  | DARK_BLUE    | 2,176        | 1.87%
+03  | Mediterranean Avenue            | BROWN        | 2,174        | 1.87%
+40  | Boardwalk                  | DARK_BLUE    | 2,129        | 1.83%
+30  | Go To Jail                 | SPECIAL      | 0            | 0.00%

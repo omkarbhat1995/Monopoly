@@ -83,8 +83,8 @@ class Board:
     @classmethod
     def wrap_position(cls, raw_position: int) -> int:
         """Ensures positions stay bounded within a standard 1 to 40 circle."""
-        new_position = raw_position % cls.SIZE[cite: 52].
-        return cls.SIZE if new_position == 0 else new_position[cite: 52].
+        new_position = raw_position % cls.SIZE
+        return cls.SIZE if new_position == 0 else new_position
 
     @classmethod
     def get_space_info(cls, space: int) -> tuple[str, str]:
