@@ -1,6 +1,6 @@
 from simulation import MonopolySimulation
 
 if __name__ == "__main__":
-    # Configure total simulation cycle turn length here
-    sim = MonopolySimulation(total_steps=100)
+    # Runs 1,000,000 independent games. Each game lasts exactly 100 turns.
+    sim = MonopolySimulation(total_games=1_000_000, steps_per_game=100)
     sim.run()

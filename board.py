@@ -1,6 +1,5 @@
 class Board:
     """Manages the board configurations and spatial positioning logic."""
-    
     SIZE = 40
     JAIL = 10
     GO_TO_JAIL = 30
@@ -14,10 +13,10 @@ class Board:
     @classmethod
     def get_special_label(cls, space: int) -> str:
         """Provides human-readable labels for primary landmark spaces."""
-        if space == cls.JAIL:
+        if space == cls.JAIL: 
             return " (Jail)"
-        if space == cls.GO_TO_JAIL:
+        if space == cls.GO_TO_JAIL: 
             return " (Go To Jail)"
-        if space == 1:
+        if space == 1: 
             return " (GO)"
         return ""
