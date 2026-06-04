@@ -1,9 +1,5 @@
 # Monopoly
 
-import os
-
-readme_content = """# Monopoly Game Board Simulation (OOP Batch Engine)
-
 An optimized, high-performance Python simulation engine designed to approximate the statistical landing frequencies across a standard 40-space Monopoly board layout. 
 
 Unlike standard infinite-loop Markov chain algorithms, this engine utilizes an object-oriented paradigm to run batch architectures (**1,000,000 independent games consisting of exactly 100 steps each**). By resetting state metrics at the beginning of each game initialization, the simulation accurately maps the true short-duration probability heatmap of normal casual play rather than infinite-horizon asymptotic equilibrium.
