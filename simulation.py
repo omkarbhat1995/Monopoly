@@ -152,7 +152,6 @@ class MonopolySimulation:
         return rent_table[0]
 
     def execute_auction(self, space_id: int) -> None:
-        """Automated Bank Auction utilizing Maximum Valuation Bidding logic."""
         bidders = [p for p in self.players if not p.is_bankrupt]
         if not bidders: return
 
@@ -160,33 +159,25 @@ class MonopolySimulation:
         base_price, group = info[2], info[1]
         max_bids = {}
 
-        # 1. Secretly calculate AI bid limits
         for p in bidders:
             valuation = base_price
             num_owned = p.count_owned_in_group(group, Board.SPACE_REGISTRY)
-            
-            # If property completes a monopoly, AI will bid aggressively (up to 2x base price)
             if group in Board.COLOR_COUNTS and num_owned == Board.COLOR_COUNTS[group] - 1:
                 valuation = base_price * 2
-                
-            # Limit maximum bid by their physical cash reserve (minus $10 safety net)
             max_bid = min(valuation, p.cash - 10)
             max_bids[p] = max(0, max_bid)
 
-        # 2. Sort out the highest bidders
         sorted_bidders = sorted(max_bids.items(), key=lambda x: x[1], reverse=True)
         winner, highest_bid = sorted_bidders[0]
 
         if highest_bid <= 0:
-            if self.debug_mode: print(f"    🚫 Auction passed. No one bid on {Board.format_colored_name(space_id)}.")
+            if self.debug_mode: print(f"    🚫 Auction passed on {Board.format_colored_name(space_id)}.")
             return
 
-        # 3. Simulate bidding war: Winner pays exactly $1 more than the 2nd place bidder's max limit
         second_highest_bid = sorted_bidders[1][1] if len(sorted_bidders) > 1 else 0
-        winning_price = max(10, second_highest_bid + 1) # Bidding starts at $10 minimum
-        winning_price = min(winning_price, highest_bid) # Cap to ensure they don't overpay their own max
+        winning_price = max(10, second_highest_bid + 1)
+        winning_price = min(winning_price, highest_bid)
 
-        # 4. Award Asset
         winner.change_cash(-winning_price)
         winner.owned_properties.add(space_id)
         self.property_owners[space_id] = winner
@@ -199,15 +190,13 @@ class MonopolySimulation:
         if cost == 0 or player.is_bankrupt: return  
 
         if space_id not in self.property_owners:
-            # AI Purchasing Logic: Buy normally only if they keep a $100 safety buffer.
             if player.cash >= (cost + 100):
                 player.change_cash(-cost)
                 player.owned_properties.add(space_id)
                 self.property_owners[space_id] = player
                 if self.debug_mode: print(f"    💰 {player.name} bought {Board.format_colored_name(space_id)}.")
             else:
-                # If they want to save cash, they decline and trigger a bank auction!
-                if self.debug_mode: print(f"    ⚖️ {player.name} declined {Board.format_colored_name(space_id)}. AUCTION INITIATED!")
+                if self.debug_mode: print(f"    ⚖️ {player.name} declined {Board.format_colored_name(space_id)}. AUCTION!")
                 self.execute_auction(space_id)
                 
         elif self.property_owners[space_id] != player:
@@ -416,13 +405,45 @@ class MonopolySimulation:
 
     def _print_summary(self) -> None:
         print(f"\n" + "═"*25 + f" SIMULATION SUMMARY " + "═"*25)
-        print("\n--- FINANCIAL STATUS ---")
-        print(f"{'Player Name':<15} | {'Ending/Avg Cash':<18} | {'Status'}")
-        print("-" * 45)
-        for name, total_cash in self.average_ending_cash.items():
-            avg_cash = total_cash / self.total_games
-            status = "Bankrupt" if avg_cash <= 0 else "Active"
-            print(f"{name:<15} | ${avg_cash:<17.2f} | {status}")
+        
+        # 🚨 NEW: Branch output based on the type of run (Single vs Mass Simulation)
+        if self.total_games == 1:
+            print("\n--- FINAL GAME STATE & ASSET PORTFOLIO ---")
+            for player in self.players:
+                status = "Bankrupt" if player.is_bankrupt else "Active"
+                print(f"\n👤 {player.name} | Cash: ${player.cash} | Status: {status}")
+                
+                if player.owned_properties:
+                    print(f"   Owned Properties ({len(player.owned_properties)}):")
+                    # Sort properties physically by Board ID for a clean list
+                    for space_id in sorted(player.owned_properties):
+                        name, group = Board.get_space_info(space_id)[:2]
+                        colored_name = Board.format_colored_name(space_id)
+                        
+                        if space_id in player.mortgaged_properties:
+                            build_status = " [Mortgaged]"
+                        else:
+                            houses = player.buildings.get(space_id, 0)
+                            if houses == 0: build_status = " [Unimproved]"
+                            elif houses == 5: build_status = " [🏨 HOTEL]"
+                            else: build_status = f" [{houses} 🏠]"
+                                
+                        # Pad the colored name so the house labels align perfectly
+                        ansi_padding = 45 if group in ["BROWN", "ORANGE", "RAILROAD", "UTILITY"] else 35
+                        print(f"      - {colored_name:<{ansi_padding}} {build_status}")
+                else:
+                    print("   Owned Properties: None")
+            print("\n" + "-" * 70)
+        else:
+            # Multi-game average logic
+            print("\n--- FINANCIAL STATUS (AVERAGES) ---")
+            print(f"{'Player Name':<15} | {'Avg Ending Cash':<18} | {'Status'}")
+            print("-" * 45)
+            for name, total_cash in self.average_ending_cash.items():
+                avg_cash = total_cash / self.total_games
+                status = "Bankrupt" if avg_cash <= 0 else "Active"
+                print(f"{name:<15} | ${avg_cash:<17.2f} | {status}")
+            print(f"\nTotal Bankruptcies Triggered Across Simulation: {self.total_bankruptcies:,}")
             
         print("\n--- BOARD HEATMAP (MOST LANDED ON) ---")
         print(f"{'ID':<3} | {'Space Name':<35} | {'Group':<12} | {'Total Visits':<12} | {'Landed %':<10}")
