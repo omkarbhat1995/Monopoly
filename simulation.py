@@ -5,12 +5,12 @@ from deck import Deck
 from player import Player
 
 class MonopolySimulation:
-    def __init__(self, total_games: int = 1_000, steps_per_game: int = 100):
-        self.total_games = total_games
+    def __init__(self, total_games: int = 1_000, steps_per_game: int = 100, debug_mode: bool = False):
+        self.debug_mode = debug_mode
+        self.total_games = 1 if debug_mode else total_games
         self.steps_per_game = steps_per_game
-        self.dice = Dice()
         
-        # Instantiate 4 distinct players
+        self.dice = Dice()
         self.players = [
             Player("Player 1"), Player("Player 2"), 
             Player("Player 3"), Player("Player 4")
@@ -18,39 +18,30 @@ class MonopolySimulation:
         
         self.chance_deck = Deck("chance")
         self.com_chest_deck = Deck("community_chest")
-        
-        # Global Registry Map: space_id -> Player object who holds exclusive title deed
         self.property_owners = {}
         
         self.visited_tracking = Counter({space: 0 for space in range(1, Board.SIZE + 1)})
         self.total_positions_logged = 0
-        
-        # Financial tracking metrics for final reporting
         self.total_bankruptcies = 0
         self.average_ending_cash = {p.name: 0 for p in self.players}
 
     def calculate_rent(self, space_id: int, owner: Player, dice_total: int) -> int:
-        """Computes true rent based on exclusive ownership, monopolies, and houses."""
         info = Board.get_space_info(space_id)
         group, rent_table = info[1], info[4]
         houses = owner.buildings.get(space_id, 0)
 
-        # 1. Railroad Pricing
         if group == "RAILROAD":
             num_owned = owner.count_owned_in_group("RAILROAD", Board.SPACE_REGISTRY)
             return rent_table[min(num_owned - 1, 3)]
 
-        # 2. Utility Pricing
         if group == "UTILITY":
             num_owned = owner.count_owned_in_group("UTILITY", Board.SPACE_REGISTRY)
             multiplier = 10 if num_owned == 2 else 4
             return dice_total * multiplier
 
-        # 3. Developed Property Metrics (Houses / Hotels)
         if houses > 0:
             return rent_table[houses]
 
-        # 4. Monopolized Unimproved Set Multiplier Rule (Double Base Rent)
         num_owned = owner.count_owned_in_group(group, Board.SPACE_REGISTRY)
         if num_owned == Board.COLOR_COUNTS.get(group, 0):
             return rent_table[0] * 2
@@ -58,30 +49,40 @@ class MonopolySimulation:
         return rent_table[0]
 
     def handle_property_landing(self, player: Player, space_id: int, dice_total: int) -> None:
-        """Resolves transactions: buy if unowned, or pay rent to the exclusive owner."""
         info = Board.get_space_info(space_id)
         cost = info[2]
         
-        if cost == 0:
-            return  # Non-purchasable structural landing frame
+        if cost == 0 or player.is_bankrupt:
+            return  
 
-        # Case A: Property is Unowned - Attempt exclusive title purchase
         if space_id not in self.property_owners:
             if player.cash >= cost:
                 player.change_cash(-cost)
                 player.owned_properties.add(space_id)
                 self.property_owners[space_id] = player
+                if self.debug_mode:
+                    print(f"    💰 {player.name} bought {Board.format_colored_name(space_id)} for ${cost}. Balance: ${player.cash}")
+            elif self.debug_mode:
+                print(f"    ❌ {player.name} cannot afford {Board.format_colored_name(space_id)} (Costs ${cost}, has ${player.cash})")
                 
-        # Case B: Property is Owned by an Opponent - Process Rent
         elif self.property_owners[space_id] != player:
             owner = self.property_owners[space_id]
             if not owner.is_bankrupt:
                 rent = self.calculate_rent(space_id, owner, dice_total)
                 player.change_cash(-rent)
                 owner.change_cash(rent)
+                if self.debug_mode:
+                    houses = owner.buildings.get(space_id, 0)
+                    house_text = f" ({houses} houses)" if houses > 0 else ""
+                    print(f"    💸 Rent! {player.name} paid ${rent} to {owner.name} for {Board.format_colored_name(space_id)}{house_text}.")
+                
+                if player.is_bankrupt and self.debug_mode:
+                    print(f"    💀 {player.name} went BANKRUPT paying rent to {owner.name}!")
 
     def handle_house_building(self, player: Player) -> None:
-        """Triggers construction checks to add houses/hotels on owned monopolies."""
+        if player.is_bankrupt:
+            return
+
         for space_id in list(player.owned_properties):
             info = Board.get_space_info(space_id)
             group, house_cost = info[1], info[3]
@@ -90,54 +91,123 @@ class MonopolySimulation:
                 num_owned = player.count_owned_in_group(group, Board.SPACE_REGISTRY)
                 if num_owned == Board.COLOR_COUNTS[group]:
                     current_houses = player.buildings.get(space_id, 0)
-                    # Safe buffer: Build only if player has enough cash leftover
                     if current_houses < 5 and player.cash > (house_cost + 150): 
                         player.change_cash(-house_cost)
                         player.buildings[space_id] = current_houses + 1
+                        if self.debug_mode:
+                            type_built = "a HOTEL" if current_houses + 1 == 5 else f"house #{current_houses + 1}"
+                            print(f"    🏠 {player.name} built {type_built} on {Board.format_colored_name(space_id)} for ${house_cost}.")
 
     def run(self) -> None:
-        """Executes the complete batch simulation loop."""
-        for _ in range(self.total_games):
-            # Flash game states clean
+        if self.debug_mode:
+            print("\n" + "═"*30 + " DEBUG MODE ACTIVATED (1 GAME) " + "═"*30 + "\n")
+
+        for game_idx in range(self.total_games):
             self.property_owners.clear()
             for p in self.players:
                 p.reset_for_new_game()
             self.dice.reset_doubles()
 
-            # Execute Turn Sequence System
-            for step in range(self.steps_per_game):
+            for step in range(1, self.steps_per_game + 1):
                 active_players = [p for p in self.players if not p.is_bankrupt]
                 if len(active_players) <= 1:
-                    break # End game early if only one player is left standing
+                    if self.debug_mode:
+                        winner = active_players[0].name if active_players else "Nobody"
+                        print(f"\n🏆 Game ended on Step {step}! Winner: {winner}")
+                    break 
+
+                if self.debug_mode:
+                    print(f"🏁 --- Round Step {step} ---")
 
                 for player in active_players:
                     if player.is_bankrupt:
                         continue
                     
-                    dice_total, is_double = self.dice.roll()
+                    # --- CORE JAIL TURN BRANCH ENGINE ---
+                    if player.is_in_jail:
+                        player.turns_in_jail += 1
+                        dice_total, is_double = self.dice.roll()
+                        
+                        if self.debug_mode:
+                            print(f"🔒 {player.name} is in JAIL (Turn {player.turns_in_jail}/3). Rolled {dice_total} {'(DOUBLES!)' if is_double else ''}")
+                        
+                        if is_double:
+                            # Escape for free via doubles!
+                            player.is_in_jail = False
+                            player.turns_in_jail = 0
+                            self.dice.reset_doubles()  # Safe check: doubles out of jail does not trigger extra turns
+                            if self.debug_mode:
+                                print(f"    🔓 Freedom! Rolled doubles to escape jail for free.")
+                        else:
+                            # Failed breakout roll
+                            if player.turns_in_jail < 3:
+                                if self.debug_mode:
+                                    print(f"    ❌ Failed to roll doubles. Must remain in Jail.")
+                                self.visited_tracking[player.position] += 1
+                                self.total_positions_logged += 1
+                                continue  # Turn ends immediately stuck inside cell
+                            else:
+                                # Forced $50 buyout pay constraint reached on 3rd failure
+                                player.is_in_jail = False
+                                player.turns_in_jail = 0
+                                player.change_cash(-50)
+                                if self.debug_mode:
+                                    print(f"    💸 3rd Turn Failure! Forced to pay $50 fine to leave Jail. Balance: ${player.cash}")
+                                
+                                if player.is_bankrupt:
+                                    if self.debug_mode:
+                                        print(f"    💀 {player.name} went BANKRUPT paying the Jail posting fee!")
+                                    self.visited_tracking[player.position] += 1
+                                    self.total_positions_logged += 1
+                                    continue
+                    else:
+                        # Standard Roll Dice Action for players roaming free
+                        dice_total, is_double = self.dice.roll()
+                        db_text = f" (DOUBLE #{self.dice.consecutive_doubles}!)" if is_double else ""
+                        
+                        if self.debug_mode:
+                            print(f"🎲 {player.name} rolled {dice_total}{db_text}")
 
-                    if self.dice.consecutive_doubles == 3:
-                        player.position = Board.JAIL
-                        self.dice.reset_doubles()
-                        self.visited_tracking[player.position] += 1
-                        self.total_positions_logged += 1
-                        continue
+                        if self.dice.consecutive_doubles == 3:
+                            player.position = Board.JAIL
+                            player.is_in_jail = True
+                            player.turns_in_jail = 0
+                            self.dice.reset_doubles()
+                            self.visited_tracking[player.position] += 1
+                            self.total_positions_logged += 1
+                            if self.debug_mode:
+                                print(f"    ❌ SPEEDING TICKET! 3 doubles in a row. Sent straight to Jail.")
+                            continue
 
+                    # --- PHYSICAL MOVEMENT RESOLUTION ---
                     raw_new_pos = player.position + dice_total
-                    
-                    # Capital Flow: Collect $200 for passing GO
                     if raw_new_pos > Board.SIZE:
                         player.change_cash(200) 
+                        if self.debug_mode:
+                            print(f"    🏪 Passed GO! Collected $200. Balance: ${player.cash}")
                         
                     new_position = Board.wrap_position(raw_new_pos)
 
-                    # Capital Flow: Intercept structural tax nodes
+                    # Intercept structural nodes
                     if new_position == Board.GO_TO_JAIL:
                         new_position = Board.JAIL
+                        player.is_in_jail = True
+                        player.turns_in_jail = 0
+                        self.dice.reset_doubles()
+                        if self.debug_mode:
+                            print(f"    👮 Landed on Go To Jail! Arrested and moved to Jail cell.")
                     elif new_position == Board.INCOME_TAX:
                         player.change_cash(-200)
+                        if self.debug_mode:
+                            print(f"    💸 Paid Income Tax (-$200). Balance: ${player.cash}")
+                        if player.is_bankrupt and self.debug_mode:
+                            print(f"    💀 {player.name} went BANKRUPT from Income Tax!")
                     elif new_position == Board.LUXURY_TAX:
                         player.change_cash(-100)
+                        if self.debug_mode:
+                            print(f"    💸 Paid Luxury Tax (-$100). Balance: ${player.cash}")
+                        if player.is_bankrupt and self.debug_mode:
+                            print(f"    💀 {player.name} went BANKRUPT from Luxury Tax!")
                     
                     # Intercept Card Deck anchors
                     elif new_position in Board.CHANCE_SPACES or new_position in Board.COMMUNITY_CHEST_SPACES:
@@ -146,32 +216,44 @@ class MonopolySimulation:
                         
                         if new_position in Board.CHANCE_SPACES:
                             card = self.chance_deck.draw_card()
+                            if self.debug_mode:
+                                print(f"    ❓ Drew Chance Card: {card}")
                             new_position, forced_jail = self.chance_deck.resolve_card_movement(card, new_position)
                         else:
                             card = self.com_chest_deck.draw_card()
+                            if self.debug_mode:
+                                print(f"    📦 Drew Community Chest Card: {card}")
                             new_position, forced_jail = self.com_chest_deck.resolve_card_movement(card, new_position)
                         
+                        if forced_jail:
+                            player.is_in_jail = True
+                            player.turns_in_jail = 0
+                            self.dice.reset_doubles()
+
                         if card == "GO_BACK_3_SPACES" and new_position == 33:
                             self.visited_tracking[new_position] += 1
                             self.total_positions_logged += 1
                             cc_card = self.com_chest_deck.draw_card()
+                            if self.debug_mode:
+                                print(f"    💥 Chain Reaction! Moved back into Community Chest space and drew: {cc_card}")
                             new_position, forced_jail = self.com_chest_deck.resolve_card_movement(cc_card, new_position)
+                            if forced_jail:
+                                player.is_in_jail = True
+                                player.turns_in_jail = 0
+                                self.dice.reset_doubles()
 
-                        if forced_jail:
-                            self.dice.reset_doubles()
-
-                    # Process economic spatial properties
+                    # Handle Final Landing Step registration
                     player.position = new_position
+                    if self.debug_mode:
+                        print(f"    📍 Landed on space {player.position}: {Board.format_colored_name(player.position)}")
+                    
                     self.handle_property_landing(player, player.position, dice_total)
                     
-                    # Update tracking metrics
                     self.visited_tracking[player.position] += 1
                     self.total_positions_logged += 1
                     
-                    # Dynamic construction check
                     self.handle_house_building(player)
 
-            # Record final game financial state metrics
             for player in self.players:
                 if player.is_bankrupt:
                     self.total_bankruptcies += 1
@@ -180,19 +262,15 @@ class MonopolySimulation:
         self._print_summary()
 
     def _print_summary(self) -> None:
-        """Outputs statistical analytics, heatmaps, and financial metrics."""
-        print(f"\n" + "="*25 + f" SIMULATION COMPLETE ({self.total_games:,} GAMES) " + "="*25)
-        
-        # Financial Summary Report Table
-        print("\n--- FINANCIAL SUMMARY ---")
-        print(f"{'Player Name':<15} | {'Avg Ending Cash':<18} | {'Status'}")
+        print(f"\n" + "═"*25 + f" SIMULATION SUMMARY " + "═"*25)
+        print("\n--- FINANCIAL STATUS ---")
+        print(f"{'Player Name':<15} | {'Ending/Avg Cash':<18} | {'Status'}")
         print("-" * 45)
         for name, total_cash in self.average_ending_cash.items():
             avg_cash = total_cash / self.total_games
-            print(f"{name:<15} | ${avg_cash:<17.2f} | Running Smoothly")
-        print(f"\nTotal Bankruptcies Triggered Across Simulation: {self.total_bankruptcies:,}")
-        
-        # Spatial Heatmap Report Table
+            status = "Bankrupt" if avg_cash <= 0 else "Active"
+            print(f"{name:<15} | ${avg_cash:<17.2f} | {status}")
+            
         print("\n--- BOARD HEATMAP (MOST LANDED ON) ---")
         print(f"{'ID':<3} | {'Space Name':<35} | {'Group':<12} | {'Total Visits':<12} | {'Landed %':<10}")
         print("-" * 85)
