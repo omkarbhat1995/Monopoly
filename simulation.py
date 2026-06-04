@@ -6,10 +6,11 @@ from deck import Deck
 from player import Player
 from renderer import GameRenderer
 from bank import CentralBank
+from typing import Optional
 
 class MonopolySimulation:
     """Manages the game loop, dice, decks, and coordinates between Bank and UI."""
-    def __init__(self, total_games: int = 1_000, steps_per_game: int = 100, debug_mode: bool = False):
+    def __init__(self, total_games: int = 1_000, steps_per_game: int = 100, debug_mode: bool = False, strategies: Optional[List] = None):
         self.debug_mode = debug_mode
         self.total_games = 1 if debug_mode else total_games
         self.steps_per_game = steps_per_game
@@ -17,7 +18,14 @@ class MonopolySimulation:
         self.renderer = GameRenderer(self.debug_mode)
         self.bank = CentralBank(self.debug_mode)
         self.dice = Dice()
-        self.players = [Player("P1"), Player("P2"), Player("P3"), Player("P4")]
+        
+        # If no strategies provided, default everyone to Balanced
+        from strategy import BALANCED_STRATEGY
+        if strategies is None:
+            strategies = [BALANCED_STRATEGY] * 4
+            
+        # Initialize players with their respective strategies
+        self.players = [Player(f"P{i+1} ({strategies[i].name})", strategy=strategies[i]) for i in range(4)]
         
         self.chance_deck = Deck("chance")
         self.com_chest_deck = Deck("community_chest")
@@ -205,7 +213,8 @@ class MonopolySimulation:
         if cost == 0: return  
 
         if space_id not in self.bank.property_owners:
-            if player.cash >= (cost + 100):
+            # AI Check: Buy using the specific strategy buffer
+            if player.cash >= (cost + player.strategy.buy_buffer):
                 player.change_cash(-cost)
                 player.owned_properties.add(space_id)
                 self.bank.property_owners[space_id] = player

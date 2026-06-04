@@ -99,7 +99,7 @@ class CentralBank:
         return rent_table[0]
 
     def execute_auction(self, space_id: int, active_players: List[Player]) -> None:
-        """Simulates a Vickrey Auction based on AI cash limits and monopolies."""
+        """Simulates a Vickrey Auction based on dynamic AI strategy profiles."""
         bidders = [p for p in active_players if not p.is_bankrupt]
         if not bidders: return
 
@@ -107,11 +107,16 @@ class CentralBank:
         max_bids = {}
 
         for p in bidders:
-            valuation = base_price
+            # 1. Base valuation using the player's unique strategy multiplier
+            valuation = int(base_price * p.strategy.auction_base_mult)
             num_owned = p.count_owned_in_group(group, Board.SPACE_REGISTRY)
+            
+            # 2. Aggressive valuation if it completes a set
             if group in Board.COLOR_COUNTS and num_owned == Board.COLOR_COUNTS[group] - 1:
-                valuation = base_price * 2 
-            max_bids[p] = max(0, min(valuation, p.cash - 10))
+                valuation = int(base_price * p.strategy.auction_set_mult) 
+            
+            # 3. Cap bid by available cash minus their unique safety buffer
+            max_bids[p] = max(0, min(valuation, p.cash - p.strategy.auction_buffer))
 
         sorted_bidders = sorted(max_bids.items(), key=lambda x: x[1], reverse=True)
         winner, highest_bid = sorted_bidders[0]
@@ -128,17 +133,8 @@ class CentralBank:
         self.property_owners[space_id] = winner
         if self.debug_mode: print(f"    🔨 AUCTION WON! {winner.name} sniped {Board.format_colored_name(space_id)} for ${winning_price}.")
 
-    def process_unmortgage(self, player: Player) -> None:
-        if player.is_bankrupt or not player.mortgaged_properties: return
-        for space_id in list(player.mortgaged_properties):
-            unmortgage_cost = int((Board.SPACE_REGISTRY[space_id][2] // 2) * 1.1)
-            if player.cash > (unmortgage_cost + 300):
-                player.change_cash(-unmortgage_cost)
-                player.mortgaged_properties.remove(space_id)
-                if self.debug_mode: print(f"    📈 {player.name} unmortgaged {Board.format_colored_name(space_id)}.")
-
     def process_building(self, player: Player) -> None:
-        """Builds houses symmetrically if player holds an unmortgaged monopoly."""
+        """Builds houses symmetrically referencing the player's risk strategy buffer."""
         if player.is_bankrupt: return
         valid_groups = []
         for space_id in player.owned_properties:
@@ -159,7 +155,8 @@ class CentralBank:
                     current_houses = player.buildings.get(space_id, 0)
                     min_houses = min(player.buildings.get(p, 0) for p in group_props)
                     
-                    if current_houses == min_houses and current_houses < 5 and player.cash > (house_cost + 150):
+                    # AI Check: Does the player have enough cash past their strategy's buffer?
+                    if current_houses == min_houses and current_houses < 5 and player.cash >= (house_cost + player.strategy.build_buffer):
                         if current_houses < 4 and self.houses > 0:
                             self.houses -= 1
                             player.change_cash(-house_cost)
@@ -174,3 +171,13 @@ class CentralBank:
                             building = True
                             if self.debug_mode: print(f"    🏨 Built HOTEL on {Board.format_colored_name(space_id)}.")
                             break
+
+    def process_unmortgage(self, player: Player) -> None:
+        if player.is_bankrupt or not player.mortgaged_properties: return
+        for space_id in list(player.mortgaged_properties):
+            unmortgage_cost = int((Board.SPACE_REGISTRY[space_id][2] // 2) * 1.1)
+            if player.cash > (unmortgage_cost + 300):
+                player.change_cash(-unmortgage_cost)
+                player.mortgaged_properties.remove(space_id)
+                if self.debug_mode: print(f"    📈 {player.name} unmortgaged {Board.format_colored_name(space_id)}.")
+
