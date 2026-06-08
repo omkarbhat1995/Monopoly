@@ -12,9 +12,9 @@ if __name__ == "__main__":
 
     # Set debug_mode=False and total_games=1000 to see who survives statistically on average
     sim = MonopolySimulation(
-        total_games=1_000, 
+        total_games=1000, 
         steps_per_game=100, 
-        debug_mode=False, 
+        debug_mode= False, 
         strategies=matchup_strategies
     )
     sim.run()
